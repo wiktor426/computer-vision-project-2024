@@ -17,11 +17,25 @@ def turqoise_mask(input_image):
     mask_turqoise = cv2.inRange(hsv, turqoise_lower, turqoise_upper)
     return mask_turqoise
 
+def red_mask(input_image):
+    hsv = cv2.cvtColor(input_image, cv2.COLOR_BGR2HSV)
+    red_lower = np.array([160, 170, 20])
+    red_upper = np.array([180, 255, 255])  
+    mask_red = cv2.inRange(hsv, red_lower, red_upper)
+    return mask_red
+
+def yellow_mask(input_image):
+    hsv = cv2.cvtColor(input_image, cv2.COLOR_BGR2HSV)
+    yellow_lower = np.array([20, 170, 20])
+    yellow_upper = np.array([40, 255, 255])  
+    mask_red = cv2.inRange(hsv, yellow_lower, yellow_upper)
+    return mask_red
+
 obraz_we = cv2.imread('PW_SW_9_ref.png') 
 
 
 #2. Wykonaj segmentację koloru obrazu wejściowego, w wyniku której powstanie obraz binarny zawierający wszystkie obszary mapy o kolorze takim jak kolor jakim zaznaczono województwo, które masz wyodrębnić z obrazu wejściowego (województwo referencyjne)-> 5 pkt
-mask = turqoise_mask(obraz_we)
+mask = yellow_mask(obraz_we)
 
 #117 175 104
 show(obraz_we,"1. bazowy obraz")
