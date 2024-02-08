@@ -32,11 +32,12 @@ def yellow_mask(input_image):
     return mask_red
 
 def black_mask(input_image):
-    hsv = cv2.cvtColor(input_image, cv2.COLOR_BGR2HSV)
-    black_lower = np.array([0, 0, 0])
-    black_upper = np.array([20, 255, 255])  
-    mask_red = cv2.inRange(hsv, black_lower, black_upper)
-    return mask_red
+    grey = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+    # black_lower = np.array([0, 0, 0])
+    # black_upper = np.array([20, 255, 255])  
+    # mask_red = cv2.inRange(hsv, black_lower, black_upper)
+    ret, black_mask = cv2.threshold(grey,127,255,0)
+    return black_mask
 
 def extract_horizontal_belt(loaded_image, belt_height):
     """
@@ -75,11 +76,24 @@ def count_white_pixels(image):
     # Count pixels where the pixel value is 255 (white)
     count = np.sum(image == 255)
     return count
+def count_black_pixels(image):
+    """
+    Counts the white pixels in a grayscale image.
+
+    Parameters:
+    - image: A NumPy array representing the loaded grayscale image.
+
+    Returns:
+    - count: The number of white pixels in the image.
+    """
+    # Count pixels where the pixel value is 255 (white)
+    count = np.sum(image == 0)
+    return count
 
 
 def curtain_state(image):
     mask = black_mask(obraz_we)
-    belt = extract_horizontal_belt(image,20)
+    belt = extract_horizontal_belt(image,10)
     print("belt size px:")
     print(belt.shape[0]*belt.shape[1])
 
@@ -88,17 +102,18 @@ def curtain_state(image):
     print(mask_belt.shape)
     # ret, mask_belt = cv2.threshold(mask_belt,127,255,0)
     white_pixels_in_belt = count_white_pixels(mask_belt)
+    black_pixels_in_belt = count_black_pixels(mask_belt)
     print("white_pixels_in_belt")
     print(white_pixels_in_belt)
     show(mask,"2. mask")
     show(belt,"3. belt")
     show(mask_belt,"4. mask_belt")
-    if white_pixels_in_belt > mask_belt_size*0.95:
-        print("Wiązka nie przecieta")
-        return False
-    else:
+    if white_pixels_in_belt > 2:
         print("Wiązka przecieta")
         return True
+    else:
+        print("Wiązka nie przecieta")
+        return False
 
 
 obraz_we = cv2.imread('PW_SW_9_ref.png') 
@@ -106,7 +121,38 @@ obraz_we = cv2.imread('PW_SW_9_ref.png')
 last_curtain_state =  True
 current_curtain_state = curtain_state(obraz_we)
 
+wideo = cv2.VideoCapture('PW_SW_9.avi')
 
+
+last_curtain_state =  False
+trigger = False
+while(wideo.isOpened()):
+    read_ok, frame = wideo.read()
+    if read_ok:  # udany odczyt ramki
+        
+        if trigger:
+            print("Trigger - let's analyze")
+            #check color
+            
+        
+        cv2.imshow('frame',frame)
+
+
+        current_curtain_state = curtain_state(frame)
+        trigger = False
+        if last_curtain_state == True and current_curtain_state == False:
+            print("Time to snapshot")
+            trigger = True
+
+        last_curtain_state = current_curtain_state
+
+        # cv2.waitKey(10)   # jedna klatka na 33ms = 30 fps
+        cv2.waitKey(0)   # czekamy na wcisniecie klawisz po kazdej klatce
+    else:   # koniec pliku
+        wideo.release()            
+        cv2.waitKey(1) 
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)
 
 #2. Wykonaj segmentację koloru obrazu wejściowego, w wyniku której powstanie obraz binarny zawierający wszystkie obszary mapy o kolorze takim jak kolor jakim zaznaczono województwo, które masz wyodrębnić z obrazu wejściowego (województwo referencyjne)-> 5 pkt
 
