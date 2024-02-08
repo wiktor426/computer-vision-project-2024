@@ -1,17 +1,20 @@
 import cv2
 import numpy as np
 import keyboard
+import matplotlib.pyplot as plt
    
 
 TURQOISE_COUNT = 0
 RED_COUNT = 0
 YELLOW_COUNT = 0
+results_list = []
 
 def show(image,title=""):
     # if obraz.ndim == 2:
         # cv2.imshow(obraz,cmap='gray')
     # else:
     cv2.namedWindow(title, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+    cv2.imwrite(title + ".jpg", image) 
     cv2.imshow(title,image)
     # plt.title(tytul)   
 
@@ -108,14 +111,49 @@ def check_if_any_letter(image):
     if red_count:
         print("Red!")
         RED_COUNT = RED_COUNT + 1
+        # check_letter_b(red_mask(image))
+        # check_letter_c(red_mask(image))
+        result = ["Red","B","C"]
+        if check_letter_b(red_mask(image)):
+            print("B!")
+        else:
+            result[1] = "Not B"
+        if check_letter_c(red_mask(image)):
+            print("C!")
+        else:
+            result[2] = "Not C"
+        results_list.append(result)
         return True
     if turqoise_count:
         print("Turqoise")
         TURQOISE_COUNT = TURQOISE_COUNT + 1
+        # check_letter_b(turqoise_mask(image))
+        # check_letter_c(turqoise_mask(image))
+        result = ["Turqoise","B","C"]
+        if check_letter_b(turqoise_mask(image)):
+            print("B!")
+        else:
+            result[1] = "Not B"
+        if check_letter_c(turqoise_mask(image)):
+            print("C!")
+        else:
+            result[2] = "Not C"
+        results_list.append(result)
         return True
     if yellow_count:
         print("Yellow")
+        
         YELLOW_COUNT = YELLOW_COUNT + 1
+        result = ["Yellow","B","C"]
+        if check_letter_b(yellow_mask(image)):
+            print("B!")
+        else:
+            result[1] = "Not B"
+        if check_letter_c(yellow_mask(image)):
+            print("C!")
+        else:
+            result[2] = "Not C"
+        results_list.append(result)
         return True
     return False
 
@@ -172,11 +210,126 @@ def curtain_state(image):
         print("Wiązka nie przecieta")
         return False
     
+def check_letter_b(image):
+    obraz_we = cv2.imread('PW_SW_9_ref.png') 
+    # show(obraz_we,"1. bazowy obraz")
+    b_mask = red_mask(obraz_we[:80, :70])
+    # if count_white_pixels(image)<1250:
+        # print("Not B")
+        # print(count_white_pixels(image))
+        # return
+    scale_percent = 100*count_white_pixels(b_mask)/count_white_pixels(image) # percent of original size
+    print("scale percentage: "+str(scale_percent))
+    width = int(image.shape[1] * scale_percent / 100)
+    height = int(image.shape[0] * scale_percent / 100)
+    dim = (width, height)
+  
+    # resize image
+    resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+    ret, thresh = cv2.threshold(b_mask, 127, 255,0)
+    ret, thresh2 = cv2.threshold(resized, 127, 255,0)
+    contours,hierarchy = cv2.findContours(thresh,2,1)
+    cnt1 = contours[0]
+    contours,hierarchy = cv2.findContours(thresh2,2,1)
+    cnt2 = contours[0]
+    ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
+    print("b letter:")
+    print(ret)
+    print("wzor B shape:")
+    print(b_mask.shape)
+    show(b_mask,"wzor B")
+    print("porownaj B shape:")
+    print(image.shape)
+    show(image,"porownaj B")
+    show(resized,"resized porownaj B")
+    if ret<0.05:
+        print("To jest B!")
+        return True
+    else:
+        return False
+
+
+def check_letter_c(image):
+    obraz_we = cv2.imread('PW_SW_9_ref.png') 
+    c_mask = red_mask(obraz_we[:80, 240:340])
+    # if count_white_pixels(image)>1250:
+        # print("Not C")
+        # print(count_white_pixels(image))
+        # return
+    scale_percent = 100*count_white_pixels(c_mask)/count_white_pixels(image) # percent of original size
+    print("scale percentage: "+str(scale_percent))
+    width = int(image.shape[1] * scale_percent / 100)
+    height = int(image.shape[0] * scale_percent / 100)
+    dim = (width, height)
+  
+    # resize image
+    resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+
+    ret, thresh = cv2.threshold(c_mask, 127, 255,0)
+    ret, thresh2 = cv2.threshold(resized, 127, 255,0)
+    contours,hierarchy = cv2.findContours(thresh,2,1)
+    cnt1 = contours[0]
+    contours,hierarchy = cv2.findContours(thresh2,2,1)
+    cnt2 = contours[0]
+    ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
+    print("c letter:")
+    print(ret)
+    show(c_mask,"wzor C")
+    print("wzor C shape:")
+    print(c_mask.shape)
+    print("porownaj C shape:")
+    print(image.shape)
+    show(image,"porownaj C")
+    show(resized,"resized porownaj C")
+    if ret<0.05:
+        return True
+    else:
+        return False
 
     
 
-
 # obraz_we = cv2.imread('PW_SW_9_ref.png') 
+# show(obraz_we,"1. bazowy obraz")
+# b_mask = red_mask(obraz_we[:80, :70])#1619
+# b_mask = turqoise_mask(obraz_we[80:160, :70])#1391
+# b_mask = yellow_mask(obraz_we[160:240, :70])#1619
+
+#złe:
+# b_mask = red_mask(obraz_we[:80, 70:160])#1581
+
+# b_mask = turqoise_mask(obraz_we[80:160, 70:160])#1317
+# b_mask = yellow_mask(obraz_we[160:240, 70:160])#1581
+
+#dobre
+# c_mask = red_mask(obraz_we[:80, 240:340])#1106
+# c_mask2 = turqoise_mask(obraz_we[80:160, 240:340])#937
+# c_mask2 = yellow_mask(obraz_we[160:240,  240:340])#1106
+
+#złe:
+# c_mask_bad = red_mask(obraz_we[:80, 340:440])#1590
+
+# c_mask = turqoise_mask(obraz_we[80:160, 340:440])#1317
+# c_mask = yellow_mask(obraz_we[160:240, 340:440])#1581
+
+# ret, thresh = cv2.threshold(c_mask, 127, 255,0)
+# ret, thresh2 = cv2.threshold(b_mask, 127, 255,0)
+# contours,hierarchy = cv2.findContours(thresh,2,1)
+# cnt1 = contours[0]
+# contours,hierarchy = cv2.findContours(thresh2,2,1)
+# cnt2 = contours[0]
+# ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
+# print(ret)
+
+# print(count_white_pixels(c_mask))
+
+# show(thresh,"2. wzor")
+# show(thresh2,"2. porownanie")
+# show(c_mask_bad,"2. litera zła")
+# contours2, hierarchy2 = cv2.findContours(b_mask,  cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+# for countour in contours2:
+#     area = cv2.contourArea(countour)
+#     print(area)
+
 
 # last_curtain_state =  True
 # current_curtain_state = curtain_state(obraz_we)
@@ -197,11 +350,17 @@ while(wideo.isOpened()):
             #check color
             to_analyze = extract_below_horizontal_belt(frame,12)
             check_if_any_letter(to_analyze)
-            cv2.imshow('to_analyze',to_analyze)
+            # cv2.imshow('to_analyze',to_analyze)
+            show(to_analyze,'to_analyze')
+            # print(results_list)
+            print('\n'.join(map(str,results_list )))
+
+
 
 
         
-        cv2.imshow('frame',frame)
+        # cv2.imshow('frame',frame)
+        show(frame,'frame')
 
 
         current_curtain_state = curtain_state(frame)
@@ -212,11 +371,11 @@ while(wideo.isOpened()):
 
         last_curtain_state = current_curtain_state
 
-        # cv2.waitKey(10)   # jedna klatka na 33ms = 30 fps
-        if cv2.waitKey(10) == ord(' '):
-            print("Emergency STOP! Press space to continue")
-            while cv2.waitKey(1000) != ord(' '):
-                print("Press space to continue")
+        cv2.waitKey(2)   # jedna klatka na 33ms = 30 fps
+        # if cv2.waitKey(1) == ord(' '):
+            # print("Emergency STOP! Press space to continue")
+            # while cv2.waitKey(1000) != ord(' '):
+                # print("Press space to continue")
         # cv2.waitKey(0)   # czekamy na wcisniecie klawisz po kazdej klatce
         # if keyboard.read_key() == 'space':
             # print("A Key Pressed") 
@@ -227,9 +386,14 @@ while(wideo.isOpened()):
         cv2.destroyAllWindows()
         cv2.waitKey(1)
 
+
+
 print("TURQOISE:     " + str(TURQOISE_COUNT))
 print("RED COUNT:    " + str(RED_COUNT))
 print("YELLOW COUNT: " + str(YELLOW_COUNT))
+# print(results_list)
+print('\n'.join(map(str,results_list )))
+
 
 #2. Wykonaj segmentację koloru obrazu wejściowego, w wyniku której powstanie obraz binarny zawierający wszystkie obszary mapy o kolorze takim jak kolor jakim zaznaczono województwo, które masz wyodrębnić z obrazu wejściowego (województwo referencyjne)-> 5 pkt
 
@@ -237,3 +401,26 @@ print("YELLOW COUNT: " + str(YELLOW_COUNT))
 # show(obraz_we,"1. bazowy obraz")
 
 cv2.waitKey(0)
+
+# C turkus ok
+# C turkus ok
+# B czerwone nie ok
+# B czerwone ok
+# B czerwone ok
+# B żółte ok
+# B żółte nie ok
+# C czerwone nie ok
+# C turkus ok
+# B żółte ok
+# B żółte ok
+# B czerwone ok
+# B czerwone ok
+# C turkus ok
+# B czerwone nie ok
+# B żółte ok
+# B żółte ok
+# B turkusowe ok
+# C żółte nie ok
+# B turkusowe nie ok
+# C turkus ok
+# B żółte ok
