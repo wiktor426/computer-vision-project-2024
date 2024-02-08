@@ -105,10 +105,9 @@ obraz_we = cv2.imread('PW_SW_9_ref.png')
 
 last_curtain_state =  True
 current_curtain_state = curtain_state(obraz_we)
-if current_curtain_state:
-    print("Produkt")
-else:
-    print("Przerwa")
+
+
+
 #2. Wykonaj segmentację koloru obrazu wejściowego, w wyniku której powstanie obraz binarny zawierający wszystkie obszary mapy o kolorze takim jak kolor jakim zaznaczono województwo, które masz wyodrębnić z obrazu wejściowego (województwo referencyjne)-> 5 pkt
 
 #117 175 104
