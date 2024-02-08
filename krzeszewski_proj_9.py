@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import keyboard
+   
 
 TURQOISE_COUNT = 0
 RED_COUNT = 0
@@ -211,7 +213,14 @@ while(wideo.isOpened()):
         last_curtain_state = current_curtain_state
 
         # cv2.waitKey(10)   # jedna klatka na 33ms = 30 fps
-        cv2.waitKey(0)   # czekamy na wcisniecie klawisz po kazdej klatce
+        if cv2.waitKey(10) == ord(' '):
+            print("Emergency STOP! Press space to continue")
+            while cv2.waitKey(1000) != ord(' '):
+                print("Press space to continue")
+        # cv2.waitKey(0)   # czekamy na wcisniecie klawisz po kazdej klatce
+        # if keyboard.read_key() == 'space':
+            # print("A Key Pressed") 
+            # exit()
     else:   # koniec pliku
         wideo.release()            
         cv2.waitKey(1) 
