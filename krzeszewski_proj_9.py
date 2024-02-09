@@ -307,14 +307,29 @@ def preprocess_image(new_image, target_size=(64, 64)):
     
     return img_flattened
 
+def crop(_image):
+    ret, thresh = cv2.threshold(_image, 127, 255, 0)
+    contours, hierarchy = cv2.findContours(thresh,  cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+    # print(contours[0])
+    x, y, w, h = cv2.boundingRect(contours[0])
+
+    # Crop the image using array slicing
+    cropped_image = _image[y:y+h, x:x+w]
+    return cropped_image
 def check_if_any_letter(image):
     global TURQOISE_COUNT
     global RED_COUNT
     global YELLOW_COUNT
     global predicted_label
+    global lr_load
     red_count = count_white_pixels(red_mask(image))
     turqoise_count = count_white_pixels(turqoise_mask(image))
     yellow_count = count_white_pixels(yellow_mask(image))
+
+    black_mask_image = black_mask(image)
+    black_mask_image = crop(black_mask_image)
+    black_mask_image = cv2.resize(black_mask_image, (64, 64))
+    predicted_label = lr_load.predict(preprocess_image(black_mask_image))
     if (red_count and turqoise_count) or (turqoise_count and yellow_count) or (yellow_count and red_count):
         print("Fatal error!")
         return
@@ -322,13 +337,12 @@ def check_if_any_letter(image):
         print("Red!")
         RED_COUNT = RED_COUNT + 1
 
-        predicted_label = gnb_loaded.predict_proba(preprocess_image(red_mask(image)))
+        
         result = ["Red", predicted_label]
         return result
     if turqoise_count:
         print("Turqoise")
         TURQOISE_COUNT = TURQOISE_COUNT + 1
-        predicted_label = gnb_loaded.predict_proba(preprocess_image(turqoise_mask(image)))
         result = ["Turqoise", predicted_label]
         return result
 
@@ -336,7 +350,6 @@ def check_if_any_letter(image):
         print("Yellow")
         
         YELLOW_COUNT = YELLOW_COUNT + 1
-        predicted_label = gnb_loaded.predict_proba(preprocess_image(yellow_mask(image)))
         result = ["Yellow", predicted_label]
         return result
     # return False
@@ -473,6 +486,8 @@ def check_letter_c(image):
 wideo = cv2.VideoCapture('PW_SW_9.avi')
 
 gnb_loaded = load('gnb_model.joblib')
+nc_loaded = load('nc_model.joblib')
+lr_load = load('lr_model.joblib')
 
 
 last_curtain_state =  False

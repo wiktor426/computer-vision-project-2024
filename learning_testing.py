@@ -5,6 +5,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import NearestCentroid
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
 from joblib import dump, load
 
 
@@ -30,7 +34,7 @@ def preprocess_image(new_image, target_size=(64, 64)):
     return img_flattened
 
 
-def augment_letter(image, num_augmentations=5):
+def augment_letter(image, num_augmentations=50):
     """
     Generate augmented images from a single letter image.
 
@@ -92,7 +96,9 @@ def letter_B_learning_set(image):
     for row in range(3):
         col = 0
         letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
-        augmented_letters = augment_letter(letter_image, num_augmentations=50)
+        letter_image = crop(letter_image)
+        # augmented_letters = augment_letter(letter_image, num_augmentations=50)
+        augmented_letters.append(letter_image)
     return augmented_letters
 
 def letter_test_set(image):
@@ -110,7 +116,25 @@ def not_ok_learning_set(image):
     for row in range(3):  # First and fourth columns are correct
         for col in [1,2,4,5]:
             letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
-            augmented_letters = augment_letter(letter_image, num_augmentations=50)
+            letter_image = crop(letter_image)
+            # augmented_letters = augment_letter(letter_image, num_augmentations=500)
+            augmented_letters.append(letter_image)
+            # show(letter_image,"not_ok_learning_set"+str(row)+":"+str(col))
+            # cv2.waitKey(0)
+    return augmented_letters
+
+def letter_C_learning_set(image):
+    letter_height = 80
+    letter_width = 90
+    features = []
+    labels = []
+    augmented_letters = []
+    for row in range(3):  # First and fourth columns are correct
+        col = 3
+        letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+        letter_image = crop(letter_image)
+        # augmented_letters = augment_letter(letter_image, num_augmentations=50)
+        augmented_letters.append(letter_image)
     return augmented_letters
 
 def crop(_image):
@@ -124,13 +148,47 @@ def crop(_image):
     return cropped_image
 
 
+def test_testing_with_nc(nc):
+    dir_b = "b_images/"
+    dir_c = "c_images/"
+    dir_not_ok = "not_ok_images/"
+    images = []
+    labels = []
+    for i in range (1,11):
+        image = cv2.imread(dir_b+str(i)+".jpg")
+        image = black_mask(image)
+        image = crop(image)
+        image = cv2.resize(image, (64, 64))
+        label = nc.predict(preprocess_image(image))
+        print(f'{dir_b}{str(i)} : {label}')
+        # cv2.waitKey(0)
+        # images.append(image)
+        # labels.append("B")
+    for i in range (1,6):
+        image = cv2.imread(dir_c+str(i)+".jpg")
+        image = black_mask(image)
+        image = crop(image)
+        image = cv2.resize(image, (64, 64))
+        label = nc.predict(preprocess_image(image))
+        print(f'{dir_c}{str(i)} : {label}')
+
+    for i in range (1,7):
+        image = cv2.imread(dir_not_ok+str(i)+".jpg")
+        image = black_mask(image)
+        image = crop(image)
+        image = cv2.resize(image, (64, 64))
+        label = nc.predict(preprocess_image(image))
+        print(f'{dir_not_ok}{str(i)} : {label}')
+
+
+
 def test_testing_set():
     dir_b = "b_images/"
     dir_c = "c_images/"
     dir_not_ok = "not_ok_images/"
     images = []
     labels = []
-    for i in (1,11):
+    for i in range (1,11):
         image = cv2.imread(dir_b+str(i)+".jpg")
         image = black_mask(image)
         image = crop(image)
@@ -139,7 +197,7 @@ def test_testing_set():
         # cv2.waitKey(0)
         images.append(image)
         labels.append("B")
-    for i in (1,6):
+    for i in range (1,6):
         image = cv2.imread(dir_c+str(i)+".jpg")
         image = black_mask(image)
         image = crop(image)
@@ -148,7 +206,7 @@ def test_testing_set():
         # cv2.waitKey(0)
         images.append(image)
         labels.append("C")
-    for i in (1,7):
+    for i in range (1,7):
         image = cv2.imread(dir_not_ok+str(i)+".jpg")
         image = black_mask(image)
         image = crop(image)
@@ -159,17 +217,7 @@ def test_testing_set():
         labels.append("not ok")
     return np.array(images), np.array(labels)
 
-def letter_C_learning_set(image):
-    letter_height = 80
-    letter_width = 90
-    features = []
-    labels = []
-    augmented_letters = []
-    for row in range(3):  # First and fourth columns are correct
-        col = 3
-        letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
-        augmented_letters = augment_letter(letter_image, num_augmentations=50)
-    return augmented_letters
+
 
 def load_datasets(images_b, images_c, images_not_ok):
     images = []
@@ -257,23 +305,59 @@ y = labels
 X_train = X
 y_train = y
 
+# knn = KNeighborsClassifier(n_neighbors=3)
+# knn.fit(X_train, y_train)
+# knn_score = knn.score(X_test, y_test)
+# print(f'KNeighborsClassifier accuracy: {knn_score}')
+
+# gnb = GaussianNB()
+# gnb.fit(X_train, y_train)
+# gnb_score = gnb.score(X_test, y_test)
+# print(f'GaussianNB accuracy: {gnb_score}')
+
+
+
+
+# nc = NearestCentroid()
+# nc.fit(X_train, y_train)
+# nc_score = nc.score(X_test, y_test)
+# print(f'NearestCentroid accuracy: {nc_score}')
+
+# KNeighborsClassifier
 knn = KNeighborsClassifier(n_neighbors=3)
 knn.fit(X_train, y_train)
 knn_score = knn.score(X_test, y_test)
-print(f'KNeighborsClassifier accuracy: {knn_score}')
+print(f'KNeighborsClassifier accuracy: {knn_score:.2f}')
 
+# GaussianNB
 gnb = GaussianNB()
 gnb.fit(X_train, y_train)
 gnb_score = gnb.score(X_test, y_test)
-print(f'GaussianNB accuracy: {gnb_score}')
+print(f'GaussianNB accuracy: {gnb_score:.2f}')
 
-
-
-
+# NearestCentroid
 nc = NearestCentroid()
 nc.fit(X_train, y_train)
 nc_score = nc.score(X_test, y_test)
-print(f'NearestCentroid accuracy: {nc_score}')
+print(f'NearestCentroid accuracy: {nc_score:.2f}')
+
+# LogisticRegression
+lr = LogisticRegression(max_iter=5000)  # Increase max_iter if needed for convergence
+lr.fit(X_train, y_train)
+lr_score = lr.score(X_test, y_test)
+print(f'LogisticRegression accuracy: {lr_score:.2f}')
+
+# DecisionTreeClassifier
+dt = DecisionTreeClassifier()
+dt.fit(X_train, y_train)
+dt_score = dt.score(X_test, y_test)
+print(f'DecisionTreeClassifier accuracy: {dt_score:.2f}')
+
+# SVC (Support Vector Classifier)
+svc = SVC(probability=True)  # Enable probability=True for predict_proba method
+svc.fit(X_train, y_train)
+svc_score = svc.score(X_test, y_test)
+print(f'SVC accuracy: {svc_score:.2f}')
 
 
 test_solo_B = preprocess_image(black_mask_test_B)
@@ -284,7 +368,10 @@ print(f"Predicted label: {predicted_label}")
 predicted_label = nc.predict(test_solo_C)
 print(f"Predicted label: {predicted_label}")
 
+test_testing_with_nc(lr)
+
 save_model = input()
 if(save_model == 'yes'):
     dump(gnb, 'gnb_model.joblib')
     dump(nc,'nc_model.joblib')
+    dump(lr,'lr_model.joblib')
