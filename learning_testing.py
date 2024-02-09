@@ -113,6 +113,52 @@ def not_ok_learning_set(image):
             augmented_letters = augment_letter(letter_image, num_augmentations=50)
     return augmented_letters
 
+def crop(_image):
+    ret, thresh = cv2.threshold(_image, 127, 255, 0)
+    contours, hierarchy = cv2.findContours(thresh,  cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+    # print(contours[0])
+    x, y, w, h = cv2.boundingRect(contours[0])
+
+    # Crop the image using array slicing
+    cropped_image = _image[y:y+h, x:x+w]
+    return cropped_image
+
+
+def test_testing_set():
+    dir_b = "b_images/"
+    dir_c = "c_images/"
+    dir_not_ok = "not_ok_images/"
+    images = []
+    labels = []
+    for i in (1,11):
+        image = cv2.imread(dir_b+str(i)+".jpg")
+        image = black_mask(image)
+        image = crop(image)
+        image = cv2.resize(image, (64, 64))
+        # show(image,dir_b+str(i)+".jpg")
+        # cv2.waitKey(0)
+        images.append(image)
+        labels.append("B")
+    for i in (1,6):
+        image = cv2.imread(dir_c+str(i)+".jpg")
+        image = black_mask(image)
+        image = crop(image)
+        image = cv2.resize(image, (64, 64))
+        # show(image,dir_b+str(i)+".jpg")
+        # cv2.waitKey(0)
+        images.append(image)
+        labels.append("C")
+    for i in (1,7):
+        image = cv2.imread(dir_not_ok+str(i)+".jpg")
+        image = black_mask(image)
+        image = crop(image)
+        image = cv2.resize(image, (64, 64))
+        # show(image,dir_b+str(i)+".jpg")
+        # cv2.waitKey(0)
+        images.append(image)
+        labels.append("not ok")
+    return np.array(images), np.array(labels)
+
 def letter_C_learning_set(image):
     letter_height = 80
     letter_width = 90
@@ -168,6 +214,10 @@ def black_mask(input_image):
     ret, black_mask = cv2.threshold(grey,30,255,0)
     return black_mask
 
+#load test set
+# test_images, test_labels = test_testing_set()
+# exit()
+
 # Load dataset
 folder = 'dataset'
 learn_img = cv2.imread('PW_SW_9_ref.png') 
@@ -188,7 +238,8 @@ _images_c = letter_C_learning_set(black_mask_learn_img)
 _images_b = letter_B_learning_set(black_mask_learn_img)
 _not_ok_images = not_ok_learning_set(black_mask_learn_img)
 images, labels = load_datasets(_images_b, _images_c,_not_ok_images)
-test_images, test_labels = load_test_sets(b_test_set, c_test_set)
+# test_images, test_labels = load_test_sets(b_test_set, c_test_set)
+test_images, test_labels = test_testing_set()
 
 num_samples, height, width = images.shape
 X = images.reshape(num_samples, -1)  # This flattens each image
@@ -227,12 +278,13 @@ print(f'NearestCentroid accuracy: {nc_score}')
 
 test_solo_B = preprocess_image(black_mask_test_B)
 test_solo_C = preprocess_image(black_mask_test_C)
-predicted_label = gnb.predict(test_solo_B)
+predicted_label = nc.predict(test_solo_B)
 print(f"Predicted label: {predicted_label}")
 
-predicted_label = gnb.predict(test_solo_C)
+predicted_label = nc.predict(test_solo_C)
 print(f"Predicted label: {predicted_label}")
 
 save_model = input()
 if(save_model == 'yes'):
     dump(gnb, 'gnb_model.joblib')
+    dump(nc,'nc_model.joblib')

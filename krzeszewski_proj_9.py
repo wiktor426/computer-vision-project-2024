@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
+from joblib import dump, load
 
 
 
@@ -293,72 +294,52 @@ def extract_below_horizontal_belt(loaded_image, belt_height):
     below_belt = loaded_image[end_y:, :]
     
     return below_belt
+
+def preprocess_image(new_image, target_size=(64, 64)):
+    # Resize the image to match the input shape expected by the model
+    img_resized = cv2.resize(new_image, target_size)  # Assuming using OpenCV for resizing
+    
+    # Flatten the image if the model expects 2D input
+    img_flattened = img_resized.reshape(1, -1)  # 1 for a single image, -1 to flatten
+    
+    # Normalize pixel values if your model expects normalized inputs
+    # img_normalized = img_flattened.astype('float32') / 255.0
+    
+    return img_flattened
+
 def check_if_any_letter(image):
     global TURQOISE_COUNT
     global RED_COUNT
     global YELLOW_COUNT
+    global predicted_label
     red_count = count_white_pixels(red_mask(image))
     turqoise_count = count_white_pixels(turqoise_mask(image))
     yellow_count = count_white_pixels(yellow_mask(image))
     if (red_count and turqoise_count) or (turqoise_count and yellow_count) or (yellow_count and red_count):
         print("Fatal error!")
+        return
     if red_count:
         print("Red!")
         RED_COUNT = RED_COUNT + 1
-        # check_letter_b(red_mask(image))
-        # check_letter_c(red_mask(image))
-        result = ["Red"]
-        # if check_letter_b(red_mask(image)):
-            # print("B!")
-        # else:
-            # result[1] = "Not B"
-        # if check_letter_c(red_mask(image)):
-            # print("C!")
-        # else:
-            # result[2] = "Not C"
-        prediction = classify_new_image(knn_classifier, red_mask(image))
-        print(f'The predicted letter is: {prediction}')
-        result.append(f'{prediction}')
-        results_list.append(result)
-        return True
+
+        predicted_label = gnb_loaded.predict_proba(preprocess_image(red_mask(image)))
+        result = ["Red", predicted_label]
+        return result
     if turqoise_count:
         print("Turqoise")
         TURQOISE_COUNT = TURQOISE_COUNT + 1
-        # check_letter_b(turqoise_mask(image))
-        # check_letter_c(turqoise_mask(image))
-        result = ["Turqoise"]
-        # if check_letter_b(turqoise_mask(image)):
-        #     print("B!")
-        # else:
-        #     result[1] = "Not B"
-        # if check_letter_c(turqoise_mask(image)):
-        #     print("C!")
-        # else:
-        #     result[2] = "Not C"
-        prediction = classify_new_image(knn_classifier, turqoise_mask(image))
-        print(f'The predicted letter is: {prediction}')
-        result.append(prediction)
-        results_list.append(result)
-        return True
+        predicted_label = gnb_loaded.predict_proba(preprocess_image(turqoise_mask(image)))
+        result = ["Turqoise", predicted_label]
+        return result
+
     if yellow_count:
         print("Yellow")
         
         YELLOW_COUNT = YELLOW_COUNT + 1
-        result = ["Yellow"]
-        # if check_letter_b(yellow_mask(image)):
-        #     print("B!")
-        # else:
-        #     result[1] = "Not B"
-        # if check_letter_c(yellow_mask(image)):
-        #     print("C!")
-        # else:
-        #     result[2] = "Not C"
-        prediction = classify_new_image(knn_classifier, yellow_mask(image))
-        print(f'The predicted letter is: {prediction}')
-        result.append(prediction)
-        results_list.append(result)
-        return True
-    return False
+        predicted_label = gnb_loaded.predict_proba(preprocess_image(yellow_mask(image)))
+        result = ["Yellow", predicted_label]
+        return result
+    # return False
 
 def count_white_pixels(image):
     """
@@ -489,96 +470,14 @@ def check_letter_c(image):
     else:
         return False
 
-    
-
-learn_img = cv2.imread('PW_SW_9_ref.png') 
-show(learn_img,"1. learn_img")
-black_mask_learn_img = black_mask(learn_img)
-# features, labels = extract_features_and_labels(black_mask_learn_img)
-features_b, labels_b = letter_B_learning_set(black_mask_learn_img)
-show(black_mask_learn_img,"black_mask_learn_img")
-features_c, labels_c = letter_C_learning_set(black_mask_learn_img)
-features = []
-labels = []
-features.append(features_b)
-features.append(features_c)
-
-labels.append(labels_b)
-labels.append(labels_c)
-
-# extract_features_and_labels(training_image_path)
-
-# Train the classifier
-knn_classifier = train_classifier(features, labels)
-cv2.waitKey(0)
-
-# Path to the new image
-new_image_path = 'clasifyB.jpg'
-new_image = cv2.imread(new_image_path, cv2.IMREAD_GRAYSCALE)
-# # Classify the new image
-prediction = classify_new_image(knn_classifier, new_image)
-print(f'The predicted letter is: {prediction}')
-show(new_image,"new_image_path")
-
-new_image_path2 = 'clasifyC.jpg'
-new_image2 = cv2.imread(new_image_path2, cv2.IMREAD_GRAYSCALE)
-# # Classify the new image
-show(new_image2,"new_image_path2")
-prediction = classify_new_image(knn_classifier, new_image2)
-print(f'The predicted letter is: {prediction}')
-cv2.waitKey(0)
-exit()
-# b_mask = red_mask(obraz_we[:80, :70])#1619
-# b_mask = turqoise_mask(obraz_we[80:160, :70])#1391
-# b_mask = yellow_mask(obraz_we[160:240, :70])#1619
-
-#złe:
-# b_mask = red_mask(obraz_we[:80, 70:160])#1581
-
-# b_mask = turqoise_mask(obraz_we[80:160, 70:160])#1317
-# b_mask = yellow_mask(obraz_we[160:240, 70:160])#1581
-
-#dobre
-# c_mask = red_mask(obraz_we[:80, 240:340])#1106
-# c_mask2 = turqoise_mask(obraz_we[80:160, 240:340])#937
-# c_mask2 = yellow_mask(obraz_we[160:240,  240:340])#1106
-
-#złe:
-# c_mask_bad = red_mask(obraz_we[:80, 340:440])#1590
-
-# c_mask = turqoise_mask(obraz_we[80:160, 340:440])#1317
-# c_mask = yellow_mask(obraz_we[160:240, 340:440])#1581
-
-# ret, thresh = cv2.threshold(c_mask, 127, 255,0)
-# ret, thresh2 = cv2.threshold(b_mask, 127, 255,0)
-# contours,hierarchy = cv2.findContours(thresh,2,1)
-# cnt1 = contours[0]
-# contours,hierarchy = cv2.findContours(thresh2,2,1)
-# cnt2 = contours[0]
-# ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
-# print(ret)
-
-# print(count_white_pixels(c_mask))
-
-# show(thresh,"2. wzor")
-# show(thresh2,"2. porownanie")
-# show(c_mask_bad,"2. litera zła")
-# contours2, hierarchy2 = cv2.findContours(b_mask,  cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
-# for countour in contours2:
-#     area = cv2.contourArea(countour)
-#     print(area)
-
-
-# last_curtain_state =  True
-# current_curtain_state = curtain_state(obraz_we)
-# cv2.waitKey(0)
-# exit()
-
 wideo = cv2.VideoCapture('PW_SW_9.avi')
+
+gnb_loaded = load('gnb_model.joblib')
 
 
 last_curtain_state =  False
 trigger = False
+to_analyze_counter = 0
 while(wideo.isOpened()):
     read_ok, frame = wideo.read()
     if read_ok:  # udany odczyt ramki
@@ -587,9 +486,10 @@ while(wideo.isOpened()):
             print("Trigger - let's analyze")
             #check color
             to_analyze = extract_below_horizontal_belt(frame,12)
-            check_if_any_letter(to_analyze)
+            results_list.append(check_if_any_letter(to_analyze))
             # cv2.imshow('to_analyze',to_analyze)
-            show(to_analyze,'to_analyze')
+            show(to_analyze,'to_analyze' + str(to_analyze_counter))
+            to_analyze_counter = to_analyze_counter + 1
             # print(results_list)
             print('\n'.join(map(str,results_list )))
 
