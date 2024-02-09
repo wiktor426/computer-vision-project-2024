@@ -101,11 +101,7 @@ def letter_B_learning_set(image):
         augmented_letters.append(letter_image)
     return augmented_letters
 
-def letter_test_set(image):
-    augmented_letters = []
-    letter_image = image
-    augmented_letters = augment_letter(letter_image, num_augmentations=50)
-    return augmented_letters
+
 
 def not_ok_learning_set(image):
     letter_height = 80
@@ -146,7 +142,11 @@ def crop(_image):
     # Crop the image using array slicing
     cropped_image = _image[y:y+h, x:x+w]
     return cropped_image
-
+def letter_test_set(image):
+    augmented_letters = []
+    letter_image = image
+    augmented_letters = augment_letter(letter_image, num_augmentations=50)
+    return augmented_letters
 
 def test_testing_with_nc(nc):
     dir_b = "b_images/"
@@ -286,44 +286,24 @@ _images_c = letter_C_learning_set(black_mask_learn_img)
 _images_b = letter_B_learning_set(black_mask_learn_img)
 _not_ok_images = not_ok_learning_set(black_mask_learn_img)
 images, labels = load_datasets(_images_b, _images_c,_not_ok_images)
-# test_images, test_labels = load_test_sets(b_test_set, c_test_set)
-test_images, test_labels = test_testing_set()
+
 
 num_samples, height, width = images.shape
 X = images.reshape(num_samples, -1)  # This flattens each image
 
-num_samples, height, width = test_images.shape
-X_test = test_images.reshape(num_samples, -1)
-y_test = test_labels
 
-# Assuming 'labels' is your array of labels
+
 y = labels
-
-# X_train, X_test, y_train, y_test = train_test_split(images, labels, test_size=0.2, random_state=42)
-# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 X_train = X
 y_train = y
 
-# knn = KNeighborsClassifier(n_neighbors=3)
-# knn.fit(X_train, y_train)
-# knn_score = knn.score(X_test, y_test)
-# print(f'KNeighborsClassifier accuracy: {knn_score}')
 
-# gnb = GaussianNB()
-# gnb.fit(X_train, y_train)
-# gnb_score = gnb.score(X_test, y_test)
-# print(f'GaussianNB accuracy: {gnb_score}')
+test_images, test_labels = test_testing_set()
+num_samples, height, width = test_images.shape
+X_test = test_images.reshape(num_samples, -1)
+y_test = test_labels
 
-
-
-
-# nc = NearestCentroid()
-# nc.fit(X_train, y_train)
-# nc_score = nc.score(X_test, y_test)
-# print(f'NearestCentroid accuracy: {nc_score}')
-
-# KNeighborsClassifier
 knn = KNeighborsClassifier(n_neighbors=3)
 knn.fit(X_train, y_train)
 knn_score = knn.score(X_test, y_test)
@@ -367,6 +347,7 @@ print(f"Predicted label: {predicted_label}")
 
 predicted_label = nc.predict(test_solo_C)
 print(f"Predicted label: {predicted_label}")
+
 
 test_testing_with_nc(lr)
 

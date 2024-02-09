@@ -76,40 +76,56 @@ def letter_B_learning_set(image):
     letter_width = 90
     features = []
     labels = []
+    augmented_letters = []
     for row in range(3):
-        for col in range(3):  # First and fourth columns are correct
-            # Extract letter image
-            # letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+        col = 0
+        letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+        letter_image = crop(letter_image)
+        # augmented_letters = augment_letter(letter_image, num_augmentations=50)
+        augmented_letters.append(letter_image)
+    return augmented_letters
+
+
+
+def not_ok_learning_set(image):
+    letter_height = 80
+    letter_width = 90
+    features = []
+    labels = []
+    augmented_letters = []
+    for row in range(3):  # First and fourth columns are correct
+        for col in [1,2,4,5]:
             letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
-            augmented_letters = []
-            augmented_letters.extend(augment_letter(letter_image, num_augmentations=50))
-            for idx, aug_image in enumerate(augmented_letters):
-                feature = preprocess_letter(aug_image)
-                if col == 0:
-                    print("B")
-                    features.append(feature)
-                    labels.append("B")
-    return features, labels
+            letter_image = crop(letter_image)
+            # augmented_letters = augment_letter(letter_image, num_augmentations=500)
+            augmented_letters.append(letter_image)
+            # show(letter_image,"not_ok_learning_set"+str(row)+":"+str(col))
+            # cv2.waitKey(0)
+    return augmented_letters
 
 def letter_C_learning_set(image):
     letter_height = 80
     letter_width = 90
     features = []
     labels = []
-    for row in range(3):
-        for col in range(3):  # First and fourth columns are correct
-            # Extract letter image
-            # letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
-            letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
-            augmented_letters = []
-            augmented_letters.extend(augment_letter(letter_image, num_augmentations=50))
-            for idx, aug_image in enumerate(augmented_letters):
-                feature = preprocess_letter(aug_image)
-                if col == 3:
-                    print("C")
-                    features.append(feature)
-                    labels.append("C")
-    return features, labels
+    augmented_letters = []
+    for row in range(3):  # First and fourth columns are correct
+        col = 3
+        letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+        letter_image = crop(letter_image)
+        # augmented_letters = augment_letter(letter_image, num_augmentations=50)
+        augmented_letters.append(letter_image)
+    return augmented_letters
+
+def crop(_image):
+    ret, thresh = cv2.threshold(_image, 127, 255, 0)
+    contours, hierarchy = cv2.findContours(thresh,  cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+    # print(contours[0])
+    x, y, w, h = cv2.boundingRect(contours[0])
+
+    # Crop the image using array slicing
+    cropped_image = _image[y:y+h, x:x+w]
+    return cropped_image
 
 def extract_features_and_labels(image):
     # Load the image in grayscale
@@ -197,7 +213,26 @@ def classify_new_image(classifier, new_image):
     # Predict the letter
     prediction = classifier.predict(feature)
     return prediction
-   
+
+def load_datasets(images_b, images_c, images_not_ok):
+    images = []
+    labels = []
+    for img in images_b:
+        if img is not None:
+            img = cv2.resize(img, (64, 64)) # Resize for uniformity
+            images.append(img)
+            labels.append("B")
+    for img in images_c:
+        if img is not None:
+            img = cv2.resize(img, (64, 64)) # Resize for uniformity
+            images.append(img)
+            labels.append("C")
+    for img in images_not_ok:
+        if img is not None:
+            img = cv2.resize(img, (64, 64)) # Resize for uniformity
+            images.append(img)
+            labels.append("not ok")
+    return np.array(images), np.array(labels)
 
 TURQOISE_COUNT = 0
 RED_COUNT = 0
@@ -338,19 +373,19 @@ def check_if_any_letter(image):
         RED_COUNT = RED_COUNT + 1
 
         
-        result = ["Red", predicted_label]
+        result = ["Red", f"{predicted_label}"]
         return result
     if turqoise_count:
         print("Turqoise")
         TURQOISE_COUNT = TURQOISE_COUNT + 1
-        result = ["Turqoise", predicted_label]
+        result = ["Turqoise", f"{predicted_label}"]
         return result
 
     if yellow_count:
         print("Yellow")
         
         YELLOW_COUNT = YELLOW_COUNT + 1
-        result = ["Yellow", predicted_label]
+        result = ["Yellow", f"{predicted_label}"]
         return result
     # return False
 
@@ -485,9 +520,29 @@ def check_letter_c(image):
 
 wideo = cv2.VideoCapture('PW_SW_9.avi')
 
-gnb_loaded = load('gnb_model.joblib')
-nc_loaded = load('nc_model.joblib')
-lr_load = load('lr_model.joblib')
+# gnb_loaded = load('gnb_model.joblib')
+# nc_loaded = load('nc_model.joblib')
+# lr_load = load('lr_model.joblib')
+learn_img = cv2.imread('PW_SW_9_ref.png') 
+show(learn_img,"1. learn_img")
+black_mask_learn_img = black_mask(learn_img)
+_images_c = letter_C_learning_set(black_mask_learn_img)
+_images_b = letter_B_learning_set(black_mask_learn_img)
+_not_ok_images = not_ok_learning_set(black_mask_learn_img)
+images, labels = load_datasets(_images_b, _images_c,_not_ok_images)
+
+
+num_samples, height, width = images.shape
+X = images.reshape(num_samples, -1)  # This flattens each image
+
+
+
+y = labels
+
+X_train = X
+y_train = y
+lr_load = LogisticRegression(max_iter=5000)  # Increase max_iter if needed for convergence
+lr_load.fit(X_train, y_train)
 
 
 last_curtain_state =  False
@@ -547,11 +602,6 @@ print("YELLOW COUNT: " + str(YELLOW_COUNT))
 # print(results_list)
 print('\n'.join(map(str,results_list )))
 
-
-#2. Wykonaj segmentację koloru obrazu wejściowego, w wyniku której powstanie obraz binarny zawierający wszystkie obszary mapy o kolorze takim jak kolor jakim zaznaczono województwo, które masz wyodrębnić z obrazu wejściowego (województwo referencyjne)-> 5 pkt
-
-#117 175 104
-# show(obraz_we,"1. bazowy obraz")
 
 cv2.waitKey(0)
 
