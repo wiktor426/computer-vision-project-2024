@@ -87,14 +87,29 @@ def letter_B_learning_set(image):
 
 
 
-def not_ok_learning_set(image):
+def not_ok_B_learning_set(image):
     letter_height = 80
     letter_width = 90
     features = []
     labels = []
     augmented_letters = []
     for row in range(3):  # First and fourth columns are correct
-        for col in [1,2,4,5]:
+        for col in [1,2]:
+            letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+            letter_image = crop(letter_image)
+            # augmented_letters = augment_letter(letter_image, num_augmentations=500)
+            augmented_letters.append(letter_image)
+            # show(letter_image,"not_ok_learning_set"+str(row)+":"+str(col))
+            # cv2.waitKey(0)
+    return augmented_letters
+def not_ok_C_learning_set(image):
+    letter_height = 80
+    letter_width = 90
+    features = []
+    labels = []
+    augmented_letters = []
+    for row in range(3):  # First and fourth columns are correct
+        for col in [4,5]:
             letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
             letter_image = crop(letter_image)
             # augmented_letters = augment_letter(letter_image, num_augmentations=500)
@@ -214,7 +229,7 @@ def classify_new_image(classifier, new_image):
     prediction = classifier.predict(feature)
     return prediction
 
-def load_datasets(images_b, images_c, images_not_ok):
+def load_datasets(images_b, images_c, images_not_ok_b, images_not_ok_c):
     images = []
     labels = []
     for img in images_b:
@@ -227,11 +242,16 @@ def load_datasets(images_b, images_c, images_not_ok):
             img = cv2.resize(img, (64, 64)) # Resize for uniformity
             images.append(img)
             labels.append("C")
-    for img in images_not_ok:
+    for img in images_not_ok_b:
         if img is not None:
             img = cv2.resize(img, (64, 64)) # Resize for uniformity
             images.append(img)
-            labels.append("not ok")
+            labels.append("not ok b")
+    for img in images_not_ok_c:
+        if img is not None:
+            img = cv2.resize(img, (64, 64)) # Resize for uniformity
+            images.append(img)
+            labels.append("not ok c")
     return np.array(images), np.array(labels)
 
 TURQOISE_COUNT = 0
@@ -367,7 +387,7 @@ def check_if_any_letter(image):
     predicted_label = lr_load.predict(preprocess_image(black_mask_image))
     if (red_count and turqoise_count) or (turqoise_count and yellow_count) or (yellow_count and red_count):
         print("Fatal error!")
-        return
+        return False
     if red_count:
         print("Red!")
         RED_COUNT = RED_COUNT + 1
@@ -387,7 +407,34 @@ def check_if_any_letter(image):
         YELLOW_COUNT = YELLOW_COUNT + 1
         result = ["Yellow", f"{predicted_label}"]
         return result
-    # return False
+    return False
+
+def write_centered_text(image, text1, text2, font_scale, font=cv2.FONT_HERSHEY_SIMPLEX, color=(255, 255, 255), thickness=2):
+    # Copy the input image to not overwrite the original one
+    img = image.copy()
+    
+    # Get the width and height of the image
+    img_height, img_width = img.shape[:2]
+    
+    # Calculate the total height of the text block (two lines of text)
+    ((text_width1, text_height1), _) = cv2.getTextSize(text1, font, font_scale, thickness)
+    ((text_width2, text_height2), _) = cv2.getTextSize(text2, font, font_scale, thickness)
+    total_text_height = text_height1 + text_height2
+    
+    # Calculate the starting Y position such that the text block will be centered
+    y_position = (img_height + total_text_height) // 2 - text_height2
+    
+    # Calculate the X positions such that the texts will be centered
+    x_position1 = (img_width - text_width1) // 2
+    x_position2 = (img_width - text_width2) // 2
+    
+    # Put the first line of text on the image
+    img = cv2.putText(img, text1, (x_position1, y_position - 10), font, font_scale, color, thickness)
+    
+    # Put the second line of text on the image
+    img = cv2.putText(img, text2, (x_position2, y_position + text_height1 + 10), font, font_scale, color, thickness)
+    
+    return img
 
 def count_white_pixels(image):
     """
@@ -528,8 +575,9 @@ show(learn_img,"1. learn_img")
 black_mask_learn_img = black_mask(learn_img)
 _images_c = letter_C_learning_set(black_mask_learn_img)
 _images_b = letter_B_learning_set(black_mask_learn_img)
-_not_ok_images = not_ok_learning_set(black_mask_learn_img)
-images, labels = load_datasets(_images_b, _images_c,_not_ok_images)
+_not_ok_b_images = not_ok_B_learning_set(black_mask_learn_img)
+_not_ok_c_images = not_ok_C_learning_set(black_mask_learn_img)
+images, labels = load_datasets(_images_b, _images_c,_not_ok_b_images,_not_ok_c_images)
 
 
 num_samples, height, width = images.shape
@@ -548,6 +596,7 @@ lr_load.fit(X_train, y_train)
 last_curtain_state =  False
 trigger = False
 to_analyze_counter = 0
+font_scale = 0.5
 while(wideo.isOpened()):
     read_ok, frame = wideo.read()
     if read_ok:  # udany odczyt ramki
@@ -556,12 +605,15 @@ while(wideo.isOpened()):
             print("Trigger - let's analyze")
             #check color
             to_analyze = extract_below_horizontal_belt(frame,12)
-            results_list.append(check_if_any_letter(to_analyze))
+            result = check_if_any_letter(to_analyze)
+            if result:
+                results_list.append(result)
             # cv2.imshow('to_analyze',to_analyze)
-            show(to_analyze,'to_analyze' + str(to_analyze_counter))
-            to_analyze_counter = to_analyze_counter + 1
+                output_image = write_centered_text(to_analyze, result[0], result[1], font_scale)
+                show(output_image,'Produkt nr' + str(to_analyze_counter))
+                to_analyze_counter = to_analyze_counter + 1
             # print(results_list)
-            print('\n'.join(map(str,results_list )))
+                print('\n'.join(map(str,results_list )))
 
 
 
@@ -590,12 +642,13 @@ while(wideo.isOpened()):
             # exit()
     else:   # koniec pliku
         wideo.release()            
-        cv2.waitKey(1) 
+        cv2.waitKey(0) 
         cv2.destroyAllWindows()
         cv2.waitKey(1)
 
 
-
+print("")
+print("SUMMARY:")
 print("TURQOISE:     " + str(TURQOISE_COUNT))
 print("RED COUNT:    " + str(RED_COUNT))
 print("YELLOW COUNT: " + str(YELLOW_COUNT))
