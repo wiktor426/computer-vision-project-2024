@@ -70,7 +70,7 @@ def preprocess_letter(image, size=(50, 50)):
     flat_features = resized_image.flatten()
     return flat_features
 
-
+# Learning set preparation function for B letter
 def letter_B_learning_set(image):
     letter_height = 80
     letter_width = 90
@@ -86,7 +86,7 @@ def letter_B_learning_set(image):
     return augmented_letters
 
 
-
+# Learning set preparation function for not B letter
 def not_ok_B_learning_set(image):
     letter_height = 80
     letter_width = 90
@@ -102,6 +102,8 @@ def not_ok_B_learning_set(image):
             # show(letter_image,"not_ok_learning_set"+str(row)+":"+str(col))
             # cv2.waitKey(0)
     return augmented_letters
+
+# Learning set preparation function for not C letter
 def not_ok_C_learning_set(image):
     letter_height = 80
     letter_width = 90
@@ -118,6 +120,7 @@ def not_ok_C_learning_set(image):
             # cv2.waitKey(0)
     return augmented_letters
 
+# Learning set preparation function for not C letter
 def letter_C_learning_set(image):
     letter_height = 80
     letter_width = 90
@@ -132,103 +135,7 @@ def letter_C_learning_set(image):
         augmented_letters.append(letter_image)
     return augmented_letters
 
-def crop(_image):
-    ret, thresh = cv2.threshold(_image, 127, 255, 0)
-    contours, hierarchy = cv2.findContours(thresh,  cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
-    # print(contours[0])
-    x, y, w, h = cv2.boundingRect(contours[0])
-
-    # Crop the image using array slicing
-    cropped_image = _image[y:y+h, x:x+w]
-    return cropped_image
-
-def extract_features_and_labels(image):
-    # Load the image in grayscale
-    # image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    # Define the correct positions of letters in the training image
-    # We assume each letter is of the same size and non-overlapping
-    # You will need to adjust these values according to your actual image
-    letter_height = 80
-    letter_width = 90
-    features = []
-    labels = []
-    for row in range(3):
-        for col in range(3):  # First and fourth columns are correct
-            # Extract letter image
-            # letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
-            letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
-            augmented_letters = []
-            augmented_letters.extend(augment_letter(letter_image, num_augmentations=50))
-            for idx, aug_image in enumerate(augmented_letters):
-                feature = preprocess_letter(aug_image)
-                if col == 0 or col == 3:
-                    if col == 0:
-                        print("B")
-                        features.append(feature)
-                        labels.append("B")
-                        # show(letter_image,"letter_image"+str(row)+":"+str(col)+":"+str(idx)+"B")
-                    if col == 3:
-                        features.append(feature)
-                        labels.append("C")
-                        # show(letter_image,"letter_image"+str(row)+":"+str(col)+":"+str(idx)+"C")
-                        print("C")
-                elif row < 3:
-                    print("not ok B")
-                    # features.append(feature)
-                    # labels.append("not ok B")
-                    # show(letter_image,"letter_image"+str(row)+":"+str(col)+":"+str(idx)+"not ok B")
-                else: 
-                    print("not ok C")
-                    # features.append(feature)
-                    # labels.append("not ok C")
-                    # show(letter_image,"letter_image"+str(row)+":"+str(col)+":"+str(idx)+"not ok C")
-
-            # Flatten the letter image to a 1D array
-            # feature = letter_image.flatten()
-            # feature = preprocess_letter(letter_image)
-            
-            # Label 'B' for the first row, and similarly for other rows
-            # if col == 0 or col == 3:
-            #     if col == 0:
-            #         features.append(feature)
-            #         labels.append("B")
-            #         show(letter_image,"letter_image"+str(row)+":"+str(col)+"B")
-            #     if col == 3:
-            #         features.append(feature)
-            #         labels.append("C")
-            #         show(letter_image,"letter_image"+str(row)+":"+str(col)+"C")
-            #         print("0")
-            # else:
-            #     print("0")
-            #     # features.append(feature)
-            #     # labels.append("not ok")
-            #     show(letter_image,"letter_image"+str(row)+":"+str(col)+"not ok")
-
-            # labels.append('B' if row == 0 else 'C' if row == 1 else 'not ok')
-            
-    return np.array(features), np.array(labels)
-
-def train_classifier(features, labels):
-    # knn = KNeighborsClassifier(n_neighbors=3)
-    # knn = SVC(gamma='auto')
-    knn = MLPClassifier(hidden_layer_sizes=(100, ), max_iter=1000)
-    knn.fit(features, labels)
-
-    # knn.fit(features, labels)
-    # knn.fit(features, labels)
-    return knn
-
-def classify_new_image(classifier, new_image):
-    # Load and preprocess the new image similarly to the training images
-    # new_image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    # Assuming the new image is a single letter of the same size as the training letters
-    # feature = new_image.flatten().reshape(1, -1)
-    feature = preprocess_letter(new_image).reshape(1, -1)
-    show(new_image,"clasify")
-    # Predict the letter
-    prediction = classifier.predict(feature)
-    return prediction
-
+# Load datasets and set labels
 def load_datasets(images_b, images_c, images_not_ok_b, images_not_ok_c):
     images = []
     labels = []
@@ -254,11 +161,8 @@ def load_datasets(images_b, images_c, images_not_ok_b, images_not_ok_c):
             labels.append("not ok c")
     return np.array(images), np.array(labels)
 
-TURQOISE_COUNT = 0
-RED_COUNT = 0
-YELLOW_COUNT = 0
-results_list = []
 
+# Shows image with title
 def show(image,title=""):
     # if obraz.ndim == 2:
         # cv2.imshow(obraz,cmap='gray')
@@ -268,7 +172,7 @@ def show(image,title=""):
     cv2.imshow(title,image)
     # plt.title(tytul)   
 
-#turqoise mask function
+# Masks everything turqoise to white
 def turqoise_mask(input_image):
     hsv = cv2.cvtColor(input_image, cv2.COLOR_BGR2HSV)
     turqoise_lower = np.array([80, 200, 160])
@@ -277,6 +181,7 @@ def turqoise_mask(input_image):
     show(mask_turqoise,"mask_turqoise")
     return mask_turqoise
 
+# Masks everything red to white
 def red_mask(input_image):
     hsv = cv2.cvtColor(input_image, cv2.COLOR_BGR2HSV)
     red_lower = np.array([160, 170, 20])
@@ -284,7 +189,7 @@ def red_mask(input_image):
     mask_red = cv2.inRange(hsv, red_lower, red_upper)
     show(mask_red,"mask_red")
     return mask_red
-
+# Masks everything yellow to white
 def yellow_mask(input_image):
     hsv = cv2.cvtColor(input_image, cv2.COLOR_BGR2HSV)
     yellow_lower = np.array([20, 170, 20])
@@ -293,6 +198,7 @@ def yellow_mask(input_image):
     show(mask_yellow,"mask_yellow")
     return mask_yellow
 
+# Masks everything not black to white
 def black_mask(input_image):
     grey = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
     # black_lower = np.array([0, 0, 0])
@@ -326,18 +232,8 @@ def extract_horizontal_belt(loaded_image, belt_height):
     
     return belt
 
-def extract_below_horizontal_belt(loaded_image, belt_height):
-    """
-    Extracts a horizontal belt of the specified height from the center of the given image.
-
-    Parameters:
-    - loaded_image: A NumPy array representing the loaded image.
-    - belt_height: The desired height of the horizontal belt in pixels.
-
-    Returns:
-    - belt: A NumPy array representing the extracted horizontal belt.
-    """
-    
+# Extracts image under the horizontal belt "curtain"
+def extract_below_horizontal_belt(loaded_image, belt_height):    
     # Get image dimensions
     height, width = loaded_image.shape[:2]
     
@@ -350,6 +246,7 @@ def extract_below_horizontal_belt(loaded_image, belt_height):
     
     return below_belt
 
+# Function to resize and flatten image
 def preprocess_image(new_image, target_size=(64, 64)):
     # Resize the image to match the input shape expected by the model
     img_resized = cv2.resize(new_image, target_size)  # Assuming using OpenCV for resizing
@@ -362,6 +259,7 @@ def preprocess_image(new_image, target_size=(64, 64)):
     
     return img_flattened
 
+# Function to crop the letter
 def crop(_image):
     ret, thresh = cv2.threshold(_image, 127, 255, 0)
     contours, hierarchy = cv2.findContours(thresh,  cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
@@ -371,6 +269,10 @@ def crop(_image):
     # Crop the image using array slicing
     cropped_image = _image[y:y+h, x:x+w]
     return cropped_image
+# Functions check if this is letter, checks color and classify.
+# Return result as array: 
+# 1. Colour
+# 2. Classification
 def check_if_any_letter(image):
     global TURQOISE_COUNT
     global RED_COUNT
@@ -409,6 +311,7 @@ def check_if_any_letter(image):
         return result
     return False
 
+# Function to add two centered texts on image
 def write_centered_text(image, text1, text2, font_scale, font=cv2.FONT_HERSHEY_SIMPLEX, color=(255, 255, 255), thickness=2):
     # Copy the input image to not overwrite the original one
     img = image.copy()
@@ -463,7 +366,7 @@ def count_black_pixels(image):
     count = np.sum(image == 0)
     return count
 
-
+# Function checking if curtain is cut or not
 def curtain_state(image):
     mask = black_mask(image)
     belt = extract_horizontal_belt(image,12)
@@ -483,87 +386,19 @@ def curtain_state(image):
     show(mask_belt,"4. mask_belt")
     if white_pixels_in_belt > 2:
     # if check_if_any_letter(belt):
-        print("Wiązka przecieta")
+        print("Curtain cut")
         return True
     else:
-        print("Wiązka nie przecieta")
+        print("Curtain not cut")
         return False
     
-def check_letter_b(image):
-    obraz_we = cv2.imread('PW_SW_9_ref.png') 
-    # show(obraz_we,"1. bazowy obraz")
-    b_mask = red_mask(obraz_we[:80, :70])
-    # if count_white_pixels(image)<1250:
-        # print("Not B")
-        # print(count_white_pixels(image))
-        # return
-    scale_percent = 100*count_white_pixels(b_mask)/count_white_pixels(image) # percent of original size
-    print("scale percentage: "+str(scale_percent))
-    width = int(image.shape[1] * scale_percent / 100)
-    height = int(image.shape[0] * scale_percent / 100)
-    dim = (width, height)
-  
-    # resize image
-    resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
-    ret, thresh = cv2.threshold(b_mask, 127, 255,0)
-    ret, thresh2 = cv2.threshold(resized, 127, 255,0)
-    contours,hierarchy = cv2.findContours(thresh,2,1)
-    cnt1 = contours[0]
-    contours,hierarchy = cv2.findContours(thresh2,2,1)
-    cnt2 = contours[0]
-    ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
-    print("b letter:")
-    print(ret)
-    print("wzor B shape:")
-    print(b_mask.shape)
-    show(b_mask,"wzor B")
-    print("porownaj B shape:")
-    print(image.shape)
-    show(image,"porownaj B")
-    show(resized,"resized porownaj B")
-    if ret<0.05:
-        print("To jest B!")
-        return True
-    else:
-        return False
 
 
-def check_letter_c(image):
-    obraz_we = cv2.imread('PW_SW_9_ref.png') 
-    c_mask = red_mask(obraz_we[:80, 240:340])
-    # if count_white_pixels(image)>1250:
-        # print("Not C")
-        # print(count_white_pixels(image))
-        # return
-    scale_percent = 100*count_white_pixels(c_mask)/count_white_pixels(image) # percent of original size
-    print("scale percentage: "+str(scale_percent))
-    width = int(image.shape[1] * scale_percent / 100)
-    height = int(image.shape[0] * scale_percent / 100)
-    dim = (width, height)
-  
-    # resize image
-    resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
 
-    ret, thresh = cv2.threshold(c_mask, 127, 255,0)
-    ret, thresh2 = cv2.threshold(resized, 127, 255,0)
-    contours,hierarchy = cv2.findContours(thresh,2,1)
-    cnt1 = contours[0]
-    contours,hierarchy = cv2.findContours(thresh2,2,1)
-    cnt2 = contours[0]
-    ret = cv2.matchShapes(cnt1,cnt2,1,0.0)
-    print("c letter:")
-    print(ret)
-    show(c_mask,"wzor C")
-    print("wzor C shape:")
-    print(c_mask.shape)
-    print("porownaj C shape:")
-    print(image.shape)
-    show(image,"porownaj C")
-    show(resized,"resized porownaj C")
-    if ret<0.05:
-        return True
-    else:
-        return False
+TURQOISE_COUNT = 0
+RED_COUNT = 0
+YELLOW_COUNT = 0
+results_list = []
 
 wideo = cv2.VideoCapture('PW_SW_9.avi')
 
