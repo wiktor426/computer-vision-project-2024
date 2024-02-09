@@ -5,6 +5,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import NearestCentroid
+from joblib import dump, load
+
 
 def show(image,title=""):
     # if obraz.ndim == 2:
@@ -99,6 +101,18 @@ def letter_test_set(image):
     augmented_letters = augment_letter(letter_image, num_augmentations=50)
     return augmented_letters
 
+def not_ok_learning_set(image):
+    letter_height = 80
+    letter_width = 90
+    features = []
+    labels = []
+    augmented_letters = []
+    for row in range(3):  # First and fourth columns are correct
+        for col in [1,2,4,5]:
+            letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+            augmented_letters = augment_letter(letter_image, num_augmentations=50)
+    return augmented_letters
+
 def letter_C_learning_set(image):
     letter_height = 80
     letter_width = 90
@@ -111,7 +125,7 @@ def letter_C_learning_set(image):
         augmented_letters = augment_letter(letter_image, num_augmentations=50)
     return augmented_letters
 
-def load_datasets(images_b, images_c):
+def load_datasets(images_b, images_c, images_not_ok):
     images = []
     labels = []
     for img in images_b:
@@ -124,6 +138,11 @@ def load_datasets(images_b, images_c):
             img = cv2.resize(img, (64, 64)) # Resize for uniformity
             images.append(img)
             labels.append("C")
+    for img in images_not_ok:
+        if img is not None:
+            img = cv2.resize(img, (64, 64)) # Resize for uniformity
+            images.append(img)
+            labels.append("not ok")
     return np.array(images), np.array(labels)
 
 def load_test_sets(images_b, images_c):
@@ -167,7 +186,8 @@ c_test_set = letter_test_set(black_mask_test_C)
 
 _images_c = letter_C_learning_set(black_mask_learn_img)
 _images_b = letter_B_learning_set(black_mask_learn_img)
-images, labels = load_datasets(_images_b, _images_c)
+_not_ok_images = not_ok_learning_set(black_mask_learn_img)
+images, labels = load_datasets(_images_b, _images_c,_not_ok_images)
 test_images, test_labels = load_test_sets(b_test_set, c_test_set)
 
 num_samples, height, width = images.shape
@@ -196,6 +216,9 @@ gnb.fit(X_train, y_train)
 gnb_score = gnb.score(X_test, y_test)
 print(f'GaussianNB accuracy: {gnb_score}')
 
+
+
+
 nc = NearestCentroid()
 nc.fit(X_train, y_train)
 nc_score = nc.score(X_test, y_test)
@@ -210,6 +233,6 @@ print(f"Predicted label: {predicted_label}")
 predicted_label = gnb.predict(test_solo_C)
 print(f"Predicted label: {predicted_label}")
 
-
-
-
+save_model = input()
+if(save_model == 'yes'):
+    dump(gnb, 'gnb_model.joblib')
