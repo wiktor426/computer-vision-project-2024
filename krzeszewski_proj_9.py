@@ -2,6 +2,200 @@ import cv2
 import numpy as np
 import keyboard
 import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
+
+
+
+def augment_letter(image, num_augmentations=5):
+    """
+    Generate augmented images from a single letter image.
+
+    Parameters:
+    - image: A single letter image.
+    - num_augmentations: Number of augmented images to generate.
+
+    Returns:
+    - aug_images: List of augmented images.
+    """
+    aug_images = []
+    rows, cols = image.shape
+
+    for _ in range(num_augmentations):
+        # Randomly choose the type of transformation
+        transformation_type = np.random.choice(['rotate', 'translate', 'scale', 'flip', 'noise'])
+
+        if transformation_type == 'rotate':
+            # Rotate the image by a random angle between -15 and 15 degrees
+            angle = np.random.uniform(-15, 15)
+            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
+            dst = cv2.warpAffine(image, M, (cols, rows))
+        
+        elif transformation_type == 'translate':
+            # Translate the image by a random offset
+            tx = np.random.uniform(-5, 5)
+            ty = np.random.uniform(-5, 5)
+            M = np.float32([[1, 0, tx], [0, 1, ty]])
+            dst = cv2.warpAffine(image, M, (cols, rows))
+        
+        elif transformation_type == 'scale':
+            # Scale the image by a random factor between 0.9 and 1.1
+            fx = np.random.uniform(0.9, 1.1)
+            fy = np.random.uniform(0.9, 1.1)
+            dst = cv2.resize(image, None, fx=fx, fy=fy, interpolation=cv2.INTER_LINEAR)
+        
+        elif transformation_type == 'flip':
+            # Flip the image horizontally or vertically
+            flip_type = np.random.choice([-1, 0, 1])  # -1: flip both, 0: vertical, 1: horizontal
+            dst = cv2.flip(image, flip_type)
+        
+        elif transformation_type == 'noise':
+            # Add random noise to the image
+            gauss = np.random.normal(0, 1, image.size)
+            gauss = gauss.reshape(image.shape).astype('uint8')
+            dst = cv2.add(image, gauss)
+        
+        # Add the transformed image to the list
+        aug_images.append(dst)
+
+    return aug_images
+
+# Function to preprocess the image, resize and flatten the letter
+def preprocess_letter(image, size=(50, 50)):
+    # Resize the image to ensure consistency
+    resized_image = cv2.resize(image, size)
+    # Flatten the image to create a feature vector
+    flat_features = resized_image.flatten()
+    return flat_features
+
+
+def letter_B_learning_set(image):
+    letter_height = 80
+    letter_width = 90
+    features = []
+    labels = []
+    for row in range(3):
+        for col in range(3):  # First and fourth columns are correct
+            # Extract letter image
+            # letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+            letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+            augmented_letters = []
+            augmented_letters.extend(augment_letter(letter_image, num_augmentations=50))
+            for idx, aug_image in enumerate(augmented_letters):
+                feature = preprocess_letter(aug_image)
+                if col == 0:
+                    print("B")
+                    features.append(feature)
+                    labels.append("B")
+    return features, labels
+
+def letter_C_learning_set(image):
+    letter_height = 80
+    letter_width = 90
+    features = []
+    labels = []
+    for row in range(3):
+        for col in range(3):  # First and fourth columns are correct
+            # Extract letter image
+            # letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+            letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+            augmented_letters = []
+            augmented_letters.extend(augment_letter(letter_image, num_augmentations=50))
+            for idx, aug_image in enumerate(augmented_letters):
+                feature = preprocess_letter(aug_image)
+                if col == 3:
+                    print("C")
+                    features.append(feature)
+                    labels.append("C")
+    return features, labels
+
+def extract_features_and_labels(image):
+    # Load the image in grayscale
+    # image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    # Define the correct positions of letters in the training image
+    # We assume each letter is of the same size and non-overlapping
+    # You will need to adjust these values according to your actual image
+    letter_height = 80
+    letter_width = 90
+    features = []
+    labels = []
+    for row in range(3):
+        for col in range(3):  # First and fourth columns are correct
+            # Extract letter image
+            # letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+            letter_image = image[row * letter_height:(row + 1) * letter_height, col * letter_width:(col + 1) * letter_width]
+            augmented_letters = []
+            augmented_letters.extend(augment_letter(letter_image, num_augmentations=50))
+            for idx, aug_image in enumerate(augmented_letters):
+                feature = preprocess_letter(aug_image)
+                if col == 0 or col == 3:
+                    if col == 0:
+                        print("B")
+                        features.append(feature)
+                        labels.append("B")
+                        # show(letter_image,"letter_image"+str(row)+":"+str(col)+":"+str(idx)+"B")
+                    if col == 3:
+                        features.append(feature)
+                        labels.append("C")
+                        # show(letter_image,"letter_image"+str(row)+":"+str(col)+":"+str(idx)+"C")
+                        print("C")
+                elif row < 3:
+                    print("not ok B")
+                    # features.append(feature)
+                    # labels.append("not ok B")
+                    # show(letter_image,"letter_image"+str(row)+":"+str(col)+":"+str(idx)+"not ok B")
+                else: 
+                    print("not ok C")
+                    # features.append(feature)
+                    # labels.append("not ok C")
+                    # show(letter_image,"letter_image"+str(row)+":"+str(col)+":"+str(idx)+"not ok C")
+
+            # Flatten the letter image to a 1D array
+            # feature = letter_image.flatten()
+            # feature = preprocess_letter(letter_image)
+            
+            # Label 'B' for the first row, and similarly for other rows
+            # if col == 0 or col == 3:
+            #     if col == 0:
+            #         features.append(feature)
+            #         labels.append("B")
+            #         show(letter_image,"letter_image"+str(row)+":"+str(col)+"B")
+            #     if col == 3:
+            #         features.append(feature)
+            #         labels.append("C")
+            #         show(letter_image,"letter_image"+str(row)+":"+str(col)+"C")
+            #         print("0")
+            # else:
+            #     print("0")
+            #     # features.append(feature)
+            #     # labels.append("not ok")
+            #     show(letter_image,"letter_image"+str(row)+":"+str(col)+"not ok")
+
+            # labels.append('B' if row == 0 else 'C' if row == 1 else 'not ok')
+            
+    return np.array(features), np.array(labels)
+
+def train_classifier(features, labels):
+    # knn = KNeighborsClassifier(n_neighbors=3)
+    # knn = SVC(gamma='auto')
+    knn = MLPClassifier(hidden_layer_sizes=(100, ), max_iter=1000)
+    knn.fit(features, labels)
+
+    # knn.fit(features, labels)
+    # knn.fit(features, labels)
+    return knn
+
+def classify_new_image(classifier, new_image):
+    # Load and preprocess the new image similarly to the training images
+    # new_image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    # Assuming the new image is a single letter of the same size as the training letters
+    # feature = new_image.flatten().reshape(1, -1)
+    feature = preprocess_letter(new_image).reshape(1, -1)
+    show(new_image,"clasify")
+    # Predict the letter
+    prediction = classifier.predict(feature)
+    return prediction
    
 
 TURQOISE_COUNT = 0
@@ -113,15 +307,18 @@ def check_if_any_letter(image):
         RED_COUNT = RED_COUNT + 1
         # check_letter_b(red_mask(image))
         # check_letter_c(red_mask(image))
-        result = ["Red","B","C"]
-        if check_letter_b(red_mask(image)):
-            print("B!")
-        else:
-            result[1] = "Not B"
-        if check_letter_c(red_mask(image)):
-            print("C!")
-        else:
-            result[2] = "Not C"
+        result = ["Red"]
+        # if check_letter_b(red_mask(image)):
+            # print("B!")
+        # else:
+            # result[1] = "Not B"
+        # if check_letter_c(red_mask(image)):
+            # print("C!")
+        # else:
+            # result[2] = "Not C"
+        prediction = classify_new_image(knn_classifier, red_mask(image))
+        print(f'The predicted letter is: {prediction}')
+        result.append(f'{prediction}')
         results_list.append(result)
         return True
     if turqoise_count:
@@ -129,30 +326,36 @@ def check_if_any_letter(image):
         TURQOISE_COUNT = TURQOISE_COUNT + 1
         # check_letter_b(turqoise_mask(image))
         # check_letter_c(turqoise_mask(image))
-        result = ["Turqoise","B","C"]
-        if check_letter_b(turqoise_mask(image)):
-            print("B!")
-        else:
-            result[1] = "Not B"
-        if check_letter_c(turqoise_mask(image)):
-            print("C!")
-        else:
-            result[2] = "Not C"
+        result = ["Turqoise"]
+        # if check_letter_b(turqoise_mask(image)):
+        #     print("B!")
+        # else:
+        #     result[1] = "Not B"
+        # if check_letter_c(turqoise_mask(image)):
+        #     print("C!")
+        # else:
+        #     result[2] = "Not C"
+        prediction = classify_new_image(knn_classifier, turqoise_mask(image))
+        print(f'The predicted letter is: {prediction}')
+        result.append(prediction)
         results_list.append(result)
         return True
     if yellow_count:
         print("Yellow")
         
         YELLOW_COUNT = YELLOW_COUNT + 1
-        result = ["Yellow","B","C"]
-        if check_letter_b(yellow_mask(image)):
-            print("B!")
-        else:
-            result[1] = "Not B"
-        if check_letter_c(yellow_mask(image)):
-            print("C!")
-        else:
-            result[2] = "Not C"
+        result = ["Yellow"]
+        # if check_letter_b(yellow_mask(image)):
+        #     print("B!")
+        # else:
+        #     result[1] = "Not B"
+        # if check_letter_c(yellow_mask(image)):
+        #     print("C!")
+        # else:
+        #     result[2] = "Not C"
+        prediction = classify_new_image(knn_classifier, yellow_mask(image))
+        print(f'The predicted letter is: {prediction}')
+        result.append(prediction)
         results_list.append(result)
         return True
     return False
@@ -288,8 +491,43 @@ def check_letter_c(image):
 
     
 
-# obraz_we = cv2.imread('PW_SW_9_ref.png') 
-# show(obraz_we,"1. bazowy obraz")
+learn_img = cv2.imread('PW_SW_9_ref.png') 
+show(learn_img,"1. learn_img")
+black_mask_learn_img = black_mask(learn_img)
+# features, labels = extract_features_and_labels(black_mask_learn_img)
+features_b, labels_b = letter_B_learning_set(black_mask_learn_img)
+show(black_mask_learn_img,"black_mask_learn_img")
+features_c, labels_c = letter_C_learning_set(black_mask_learn_img)
+features = []
+labels = []
+features.append(features_b)
+features.append(features_c)
+
+labels.append(labels_b)
+labels.append(labels_c)
+
+# extract_features_and_labels(training_image_path)
+
+# Train the classifier
+knn_classifier = train_classifier(features, labels)
+cv2.waitKey(0)
+
+# Path to the new image
+new_image_path = 'clasifyB.jpg'
+new_image = cv2.imread(new_image_path, cv2.IMREAD_GRAYSCALE)
+# # Classify the new image
+prediction = classify_new_image(knn_classifier, new_image)
+print(f'The predicted letter is: {prediction}')
+show(new_image,"new_image_path")
+
+new_image_path2 = 'clasifyC.jpg'
+new_image2 = cv2.imread(new_image_path2, cv2.IMREAD_GRAYSCALE)
+# # Classify the new image
+show(new_image2,"new_image_path2")
+prediction = classify_new_image(knn_classifier, new_image2)
+print(f'The predicted letter is: {prediction}')
+cv2.waitKey(0)
+exit()
 # b_mask = red_mask(obraz_we[:80, :70])#1619
 # b_mask = turqoise_mask(obraz_we[80:160, :70])#1391
 # b_mask = yellow_mask(obraz_we[160:240, :70])#1619
@@ -371,11 +609,11 @@ while(wideo.isOpened()):
 
         last_curtain_state = current_curtain_state
 
-        cv2.waitKey(2)   # jedna klatka na 33ms = 30 fps
-        # if cv2.waitKey(1) == ord(' '):
-            # print("Emergency STOP! Press space to continue")
-            # while cv2.waitKey(1000) != ord(' '):
-                # print("Press space to continue")
+        # cv2.waitKey(2)   # jedna klatka na 33ms = 30 fps
+        if cv2.waitKey(1) == ord(' '):
+            print("Emergency STOP! Press space to continue")
+            while cv2.waitKey(1000) != ord(' '):
+                print("Press space to continue")
         # cv2.waitKey(0)   # czekamy na wcisniecie klawisz po kazdej klatce
         # if keyboard.read_key() == 'space':
             # print("A Key Pressed") 
